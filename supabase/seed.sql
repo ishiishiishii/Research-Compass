@@ -1,0 +1,3 @@
+-- Demo seed data is applied after auth users exist.
+-- Run `supabase db reset` after creating demo accounts via the app or Auth UI.
+-- Placeholder: Day 6 will add reinforcement-learning sample graph (F-07).
