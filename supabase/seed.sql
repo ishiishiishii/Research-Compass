@@ -57,6 +57,9 @@ BEGIN
 
   -- Second user (Tanaka): Policy Gradient系
   SELECT id INTO tanaka_id FROM public.profiles ORDER BY created_at OFFSET 1 LIMIT 1;
+  IF tanaka_id IS NOT NULL THEN
+    UPDATE public.profiles SET display_name = '田中' WHERE id = tanaka_id;
+  END IF;
   IF tanaka_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM public.nodes WHERE user_id = tanaka_id) THEN
     INSERT INTO public.nodes (user_id, title, year, summary, understanding, is_relevant, position_x, position_y)
     VALUES (tanaka_id, 'Policy Gradient', 1999, '方策勾配法の基礎', 'good', true, 180, 100)

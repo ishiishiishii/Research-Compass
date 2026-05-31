@@ -19,6 +19,7 @@ import {
   deleteEdge,
   fetchEdges,
   fetchNodes,
+  updateEdge,
   updateNode,
 } from '../../lib/api/nodes'
 import { edgeExists, toFlowEdges, toFlowNodes, type PaperFlowNode } from '../../lib/graph-utils'
@@ -51,6 +52,7 @@ export function GraphEditor({
   const [connectMode, setConnectMode] = useState<ConnectMode>('select')
   const [linkSourceId, setLinkSourceId] = useState<string | null>(null)
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null)
+  const [edgeLabelDraft, setEdgeLabelDraft] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -190,11 +192,24 @@ export function GraphEditor({
     (_: MouseEvent, edge: Edge) => {
       if (readOnly) return
       setSelectedEdgeId(edge.id)
+      setEdgeLabelDraft(typeof edge.label === 'string' ? edge.label : '')
       setSelectedNode(null)
       setLinkSourceId(null)
     },
     [readOnly],
   )
+
+  const saveEdgeLabel = useCallback(async () => {
+    if (!selectedEdgeId || readOnly) return
+    const label = edgeLabelDraft.trim() || null
+    try {
+      const updated = await updateEdge(selectedEdgeId, { label })
+      setDbEdges((prev) => prev.map((e) => (e.id === updated.id ? updated : e)))
+      setError(null)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'ラベルの保存に失敗しました')
+    }
+  }, [readOnly, selectedEdgeId, edgeLabelDraft])
 
   useEffect(() => {
     if (readOnly || !selectedEdgeId) return
@@ -279,23 +294,50 @@ export function GraphEditor({
               </span>
             )}
             {selectedEdgeId && !readOnly && (
-              <button
-                type="button"
-                onClick={() => void deleteSelectedEdge()}
-                className="rounded-lg border border-red-300 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100"
-              >
-                選択中の線を削除
-              </button>
+              <>
+                <div className="flex items-center gap-2 text-xs text-slate-600">
+                  <span>関係ラベル:</span>
+                  <input
+                    value={edgeLabelDraft}
+                    onChange={(e) => setEdgeLabelDraft(e.target.value)}
+                    placeholder="extends, improves..."
+                    className="rounded border border-slate-300 px-2 py-1 text-xs"
+                    list="edge-label-presets"
+                  />
+                  <datalist id="edge-label-presets">
+                    <option value="extends" />
+                    <option value="improves" />
+                    <option value="prerequisite" />
+                  </datalist>
+                  <button
+                    type="button"
+                    onClick={() => void saveEdgeLabel()}
+                    className="rounded border border-slate-300 px-2 py-1 text-xs hover:bg-slate-50"
+                  >
+                    保存
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void deleteSelectedEdge()}
+                  className="rounded-lg border border-red-300 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100"
+                >
+                  選択中の線を削除
+                </button>
+              </>
             )}
           </>
         )}
-        <label className="flex items-center gap-2 text-sm text-slate-600">
+        <label
+          className="flex items-center gap-2 text-sm text-slate-600"
+          title="「研究テーマとの関連」が関連のノードだけを表示します"
+        >
           <input
             type="checkbox"
             checked={relevantOnly}
             onChange={(e) => setRelevantOnly(e.target.checked)}
           />
-          関連のみ表示
+          関連ノードのみ表示
         </label>
         {readOnly && (
           <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-600">
@@ -314,6 +356,8 @@ export function GraphEditor({
       handleConnectModeChange,
       selectedEdgeId,
       deleteSelectedEdge,
+      edgeLabelDraft,
+      saveEdgeLabel,
     ],
   )
 
