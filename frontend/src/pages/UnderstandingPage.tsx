@@ -41,7 +41,7 @@ export function UnderstandingPage() {
                 <th className="px-4 py-3 font-medium">手法名</th>
                 <th className="px-4 py-3 font-medium">年</th>
                 <th className="px-4 py-3 font-medium">理解度</th>
-                <th className="px-4 py-3 font-medium">関連</th>
+                <th className="px-4 py-3 font-medium">テーマ関連</th>
               </tr>
             </thead>
             <tbody>

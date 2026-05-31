@@ -75,3 +75,21 @@ export function edgeExists(
     (e) => e.source_node_id === sourceId && e.target_node_id === targetId,
   )
 }
+
+export function findNodeByTitle(
+  nodes: PaperNode[],
+  title: string,
+): { node?: PaperNode; error?: string } {
+  const normalized = title.trim().toLowerCase()
+  if (!normalized) {
+    return { error: '論文名を入力してください' }
+  }
+  const matches = nodes.filter((n) => n.title.trim().toLowerCase() === normalized)
+  if (matches.length === 0) {
+    return { error: `「${title.trim()}」が見つかりません` }
+  }
+  if (matches.length > 1) {
+    return { error: '同じ名前の論文が複数あります。名前を区別してください' }
+  }
+  return { node: matches[0] }
+}

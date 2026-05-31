@@ -88,6 +88,21 @@ export async function createEdge(
   return data
 }
 
+export async function updateEdge(
+  id: string,
+  patch: { label?: string | null },
+): Promise<PaperEdge> {
+  if (!supabase) throw new Error('Supabase が未設定です')
+  const { data, error } = await supabase
+    .from('edges')
+    .update(patch)
+    .eq('id', id)
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
 export async function deleteEdge(id: string): Promise<void> {
   if (!supabase) throw new Error('Supabase が未設定です')
   const { error } = await supabase.from('edges').delete().eq('id', id)

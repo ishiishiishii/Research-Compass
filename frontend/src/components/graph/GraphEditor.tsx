@@ -19,9 +19,10 @@ import {
   deleteEdge,
   fetchEdges,
   fetchNodes,
+  updateEdge,
   updateNode,
 } from '../../lib/api/nodes'
-import { edgeExists, toFlowEdges, toFlowNodes, type PaperFlowNode } from '../../lib/graph-utils'
+import { edgeExists, findNodeByTitle, toFlowEdges, toFlowNodes, type PaperFlowNode } from '../../lib/graph-utils'
 import { MidpointEdge } from './MidpointEdge'
 import { PaperNodeComponent } from './PaperNode'
 import { NodeDetailPanel } from './NodeDetailPanel'
@@ -29,7 +30,7 @@ import { NodeDetailPanel } from './NodeDetailPanel'
 const nodeTypes = { paper: PaperNodeComponent }
 const edgeTypes = { midpoint: MidpointEdge }
 
-type ConnectMode = 'select' | 'drag'
+type ConnectMode = 'select' | 'drag' | 'name'
 
 type GraphEditorProps = {
   userId: string
@@ -51,6 +52,9 @@ export function GraphEditor({
   const [connectMode, setConnectMode] = useState<ConnectMode>('select')
   const [linkSourceId, setLinkSourceId] = useState<string | null>(null)
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null)
+  const [edgeLabelDraft, setEdgeLabelDraft] = useState('')
+  const [nameSourceTitle, setNameSourceTitle] = useState('')
+  const [nameTargetTitle, setNameTargetTitle] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -190,11 +194,24 @@ export function GraphEditor({
     (_: MouseEvent, edge: Edge) => {
       if (readOnly) return
       setSelectedEdgeId(edge.id)
+      setEdgeLabelDraft(typeof edge.label === 'string' ? edge.label : '')
       setSelectedNode(null)
       setLinkSourceId(null)
     },
     [readOnly],
   )
+
+  const saveEdgeLabel = useCallback(async () => {
+    if (!selectedEdgeId || readOnly) return
+    const label = edgeLabelDraft.trim() || null
+    try {
+      const updated = await updateEdge(selectedEdgeId, { label })
+      setDbEdges((prev) => prev.map((e) => (e.id === updated.id ? updated : e)))
+      setError(null)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'ラベルの保存に失敗しました')
+    }
+  }, [readOnly, selectedEdgeId, edgeLabelDraft])
 
   useEffect(() => {
     if (readOnly || !selectedEdgeId) return
@@ -233,6 +250,24 @@ export function GraphEditor({
     setLinkSourceId(null)
   }, [])
 
+  const connectByName = useCallback(async () => {
+    const sourceResult = findNodeByTitle(dbNodes, nameSourceTitle)
+    if (sourceResult.error || !sourceResult.node) {
+      setError(sourceResult.error ?? '接続元が見つかりません')
+      return
+    }
+    const targetResult = findNodeByTitle(dbNodes, nameTargetTitle)
+    if (targetResult.error || !targetResult.node) {
+      setError(targetResult.error ?? '接続先が見つかりません')
+      return
+    }
+    await tryCreateEdge(sourceResult.node.id, targetResult.node.id)
+    setNameSourceTitle('')
+    setNameTargetTitle('')
+  }, [dbNodes, nameSourceTitle, nameTargetTitle, tryCreateEdge])
+
+  const nodeTitleListId = 'graph-node-titles'
+
   const toolbar = useMemo(
     () => (
       <div className="flex flex-wrap items-center gap-3 border-b border-slate-200 bg-white px-4 py-3">
@@ -262,7 +297,57 @@ export function GraphEditor({
               >
                 ドラッグで結線
               </button>
+              <button
+                type="button"
+                onClick={() => handleConnectModeChange('name')}
+                className={`rounded-md px-3 py-1.5 ${
+                  connectMode === 'name'
+                    ? 'bg-indigo-600 text-white'
+                    : 'text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                名前で結線
+              </button>
             </div>
+            {connectMode === 'name' && (
+              <form
+                className="flex flex-wrap items-center gap-2"
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  void connectByName()
+                }}
+              >
+                <input
+                  value={nameSourceTitle}
+                  onChange={(e) => setNameSourceTitle(e.target.value)}
+                  placeholder="接続元の論文名"
+                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                  list={nodeTitleListId}
+                  autoComplete="off"
+                />
+                <span className="text-sm text-slate-500">→</span>
+                <input
+                  value={nameTargetTitle}
+                  onChange={(e) => setNameTargetTitle(e.target.value)}
+                  placeholder="接続先の論文名"
+                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                  list={nodeTitleListId}
+                  autoComplete="off"
+                />
+                <datalist id={nodeTitleListId}>
+                  {dbNodes.map((node) => (
+                    <option key={node.id} value={node.title} />
+                  ))}
+                </datalist>
+                <button
+                  type="submit"
+                  disabled={!nameSourceTitle.trim() || !nameTargetTitle.trim()}
+                  className="rounded-lg bg-indigo-600 px-3 py-2 text-sm text-white hover:bg-indigo-700 disabled:opacity-60"
+                >
+                  接続
+                </button>
+              </form>
+            )}
             {connectMode === 'select' && linkSourceId && (
               <span className="text-xs text-amber-700">
                 接続先のノードをクリックしてください
@@ -273,29 +358,61 @@ export function GraphEditor({
                 四角の辺の中点からドラッグして接続
               </span>
             )}
+            {connectMode === 'name' && (
+              <span className="text-xs text-slate-500">
+                論文名を入力するか、候補から選んで接続
+              </span>
+            )}
             {!readOnly && (
               <span className="text-xs text-slate-500">
                 線をクリックで選択 → 削除（Delete キー可）
               </span>
             )}
             {selectedEdgeId && !readOnly && (
-              <button
-                type="button"
-                onClick={() => void deleteSelectedEdge()}
-                className="rounded-lg border border-red-300 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100"
-              >
-                選択中の線を削除
-              </button>
+              <>
+                <div className="flex items-center gap-2 text-xs text-slate-600">
+                  <span>関係ラベル:</span>
+                  <input
+                    value={edgeLabelDraft}
+                    onChange={(e) => setEdgeLabelDraft(e.target.value)}
+                    placeholder="extends, improves..."
+                    className="rounded border border-slate-300 px-2 py-1 text-xs"
+                    list="edge-label-presets"
+                  />
+                  <datalist id="edge-label-presets">
+                    <option value="extends" />
+                    <option value="improves" />
+                    <option value="prerequisite" />
+                  </datalist>
+                  <button
+                    type="button"
+                    onClick={() => void saveEdgeLabel()}
+                    className="rounded border border-slate-300 px-2 py-1 text-xs hover:bg-slate-50"
+                  >
+                    保存
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void deleteSelectedEdge()}
+                  className="rounded-lg border border-red-300 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100"
+                >
+                  選択中の線を削除
+                </button>
+              </>
             )}
           </>
         )}
-        <label className="flex items-center gap-2 text-sm text-slate-600">
+        <label
+          className="flex items-center gap-2 text-sm text-slate-600"
+          title="「研究テーマとの関連」が関連のノードだけを表示します"
+        >
           <input
             type="checkbox"
             checked={relevantOnly}
             onChange={(e) => setRelevantOnly(e.target.checked)}
           />
-          関連のみ表示
+          関連ノードのみ表示
         </label>
         {readOnly && (
           <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-600">
@@ -312,8 +429,15 @@ export function GraphEditor({
       connectMode,
       linkSourceId,
       handleConnectModeChange,
+      nameSourceTitle,
+      nameTargetTitle,
+      connectByName,
+      nodeTitleListId,
+      dbNodes,
       selectedEdgeId,
       deleteSelectedEdge,
+      edgeLabelDraft,
+      saveEdgeLabel,
     ],
   )
 

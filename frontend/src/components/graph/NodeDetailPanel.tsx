@@ -235,21 +235,26 @@ function NodeDetailPanelInner({
               </div>
             </div>
             <div>
-              <div className="mb-2 text-xs font-medium text-slate-600">関連性</div>
+              <div className="mb-1 text-xs font-medium text-slate-600">
+                研究テーマとの関連
+              </div>
+              <p className="mb-2 text-xs leading-relaxed text-slate-500">
+                今の研究・学習の中心にある論文かどうかを示します。非関連にするとグラフ上で薄く表示され、読んだ履歴は残ります。
+              </p>
               <div className="flex gap-2">
                 <ToggleBtn
                   active={isRelevant}
                   disabled={readOnly}
                   onClick={() => setIsRelevant(true)}
                 >
-                  関連
+                  関連（通常表示）
                 </ToggleBtn>
                 <ToggleBtn
                   active={!isRelevant}
                   disabled={readOnly}
                   onClick={() => setIsRelevant(false)}
                 >
-                  非関連
+                  非関連（薄く表示）
                 </ToggleBtn>
               </div>
             </div>

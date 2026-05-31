@@ -24,6 +24,12 @@ export function AppLayout() {
           </Link>
           {user && (
             <nav className="flex flex-wrap items-center gap-4 text-sm text-slate-600">
+              <Link
+                to="/"
+                className="rounded-lg border border-slate-300 px-3 py-1.5 font-medium text-slate-700 hover:bg-slate-50"
+              >
+                ホーム
+              </Link>
               {appEnabled && (
                 <>
                   <Link to="/graph" className="hover:text-slate-900">
