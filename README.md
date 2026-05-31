@@ -91,16 +91,13 @@ cd frontend; npm install; npm run dev
 
 ### リポジトリ
 
-- GitHub: [ishiishiishii/ResearchCompass](https://github.com/ishiishiishii/ResearchCompass)
+- GitHub: [ishiishiishii/Research-Compass](https://github.com/ishiishiishii/Research-Compass)
 
-### 初回 push（未作成の場合）
-
-1. https://github.com/new で `ResearchCompass` リポジトリを作成（README 追加なし）
-2. 以下を実行:
+### clone
 
 ```powershell
-git remote add origin https://github.com/ishiishiishii/ResearchCompass.git
-git push -u origin main
+git clone https://github.com/ishiishiishii/Research-Compass.git
+cd Research-Compass
 ```
 
 ### CI（GitHub Actions）
@@ -109,7 +106,7 @@ git push -u origin main
 
 ### Vercel デプロイ（Day 7）
 
-1. https://vercel.com → GitHub 連携 → `ResearchCompass` を Import
+1. https://vercel.com → GitHub 連携 → `Research-Compass` を Import
 2. Root Directory: `frontend`
 3. Environment Variables:
    - `VITE_SUPABASE_URL` = Supabase Cloud の Project URL
