@@ -2,6 +2,12 @@
 
 研究論文・手法をグラフで可視化し、学習メモ・理解度を管理する Web アプリ（ハッカソン MVP）。
 
+## デモ（本番環境）
+
+**https://research-compass-7o92.onrender.com/**
+
+Render + Supabase Cloud でホスティングしています。
+
 ## ドキュメント
 
 - [企画・要件定義書](docs/01_企画・要件定義書.md)
@@ -94,7 +100,15 @@ cd Research-Compass
 
 `main` / `develop` への push / PR で自動 lint + build（`.github/workflows/ci.yml`）。
 
-### Vercel デプロイ
+### Render デプロイ（本番）
+
+- URL: https://research-compass-7o92.onrender.com/
+- Static Site / Root Directory: `frontend`
+- Environment Variables:
+  - `VITE_SUPABASE_URL` = Supabase Cloud の Project URL
+  - `VITE_SUPABASE_ANON_KEY` = Supabase Cloud の anon key
+
+### Vercel デプロイ（代替）
 
 1. https://vercel.com → GitHub 連携 → `Research-Compass` を Import
 2. Root Directory: `frontend`
@@ -112,7 +126,7 @@ cd Research-Compass
 4. 理解度・関連/非関連トグル
 5. グループ作成・招待・参加
 6. メンバー論文図の閲覧（RLS）・デモ用シードデータ
-7. UI 調整・Vercel / Supabase Cloud へのデプロイ
+7. UI 調整・Render / Supabase Cloud へのデプロイ
 
 ---
 
@@ -121,4 +135,4 @@ cd Research-Compass
 - **Frontend**: React, TypeScript, Vite, Tailwind CSS, React Flow, React Router
 - **Backend**: Supabase（Auth + PostgreSQL + RLS）
 - **Dev**: Docker Compose
-- **Hosting**: Vercel + Supabase Cloud
+- **Hosting**: Render + Supabase Cloud
