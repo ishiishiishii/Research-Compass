@@ -9,30 +9,33 @@ export type TutorialMode = 'closed' | 'initial' | 'manual'
 
 export function useTutorial(userId: string | undefined) {
   const [manualOpen, setManualOpen] = useState(false)
-  const [initialDismissed, setInitialDismissed] = useState(false)
+  const [refreshKey, setRefreshKey] = useState(0)
 
-  const finished = userId ? isTutorialFinished(userId) : true
-  const showInitial = Boolean(userId && !finished && !initialDismissed)
+  const finished = !userId || isTutorialFinished(userId)
+  void refreshKey
 
+  const showInitial = Boolean(userId && !finished)
   const mode: TutorialMode = manualOpen ? 'manual' : showInitial ? 'initial' : 'closed'
 
   const openTutorial = useCallback(() => setManualOpen(true), [])
 
+  const bumpFinished = useCallback(() => setRefreshKey((k) => k + 1), [])
+
   const completeTutorial = useCallback(() => {
     if (userId) markTutorialDone(userId)
     setManualOpen(false)
-    setInitialDismissed(true)
-  }, [userId])
+    bumpFinished()
+  }, [userId, bumpFinished])
 
   const skipTutorial = useCallback(() => {
     if (userId) markTutorialSkipped(userId)
     setManualOpen(false)
-    setInitialDismissed(true)
-  }, [userId])
+    bumpFinished()
+  }, [userId, bumpFinished])
 
   const closeTutorial = useCallback(() => setManualOpen(false), [])
 
-  const appEnabled = finished || initialDismissed
+  const appEnabled = finished
 
   return {
     mode,
