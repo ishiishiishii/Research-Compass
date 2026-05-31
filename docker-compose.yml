@@ -1,41 +1,13 @@
-# Research Compass — Full development stack (Day 1–7)
+# Research Compass — development stack
 #
-# One command starts EVERYTHING needed for the entire hackathon:
-#   - Supabase: PostgreSQL, Auth, REST API, Studio
-#   - Frontend: React + Vite dev server (hot reload)
-#   - DB migrations applied automatically
+# Supabase: npx supabase start --ignore-health-check  (host)
+# Frontend: docker compose up frontend
 #
-# Prerequisites: Docker Desktop (running)
-#
-# Quick start:
-#   cp .env.example .env
-#   cp frontend/.env.example frontend/.env
-#   docker compose up
-#
-# URLs:
-#   App:     http://localhost:5173
-#   API:     http://localhost:54321
-#   Studio:  http://localhost:54323
-#   DB:      postgresql://postgres:postgres@localhost:54322/postgres
+# Or use: .\scripts\up.ps1
 
 name: research-compass
 
 services:
-  # Supabase local stack via CLI (creates Auth, DB, Kong, Studio containers on host)
-  supabase:
-    build:
-      context: ./docker/supabase
-      dockerfile: Dockerfile
-    container_name: rc-supabase
-    volumes:
-      - .:/workspace
-      - /var/run/docker.sock:/var/run/docker.sock
-    working_dir: /workspace
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    restart: unless-stopped
-
-  # React + Vite frontend (all npm deps installed in image)
   frontend:
     build:
       context: ./frontend
@@ -47,16 +19,12 @@ services:
       - ./frontend:/app
       - frontend_node_modules:/app/node_modules
     environment:
-      VITE_SUPABASE_URL: ${VITE_SUPABASE_URL:-http://localhost:54321}
-      VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0}
+      VITE_SUPABASE_URL: ${VITE_SUPABASE_URL:-http://host.docker.internal:54321}
+      VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY:-}
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    depends_on:
-      supabase:
-        condition: service_healthy
     restart: unless-stopped
 
-  # Optional: run lint / build inside Docker (Day 7 CI parity)
   tools:
     build:
       context: ./frontend

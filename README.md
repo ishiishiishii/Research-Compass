@@ -13,65 +13,55 @@ ResearchCompass/
 ├── docs/                    # 企画・設計ドキュメント
 ├── frontend/                # React + Vite + TypeScript
 ├── supabase/                # DB マイグレーション・Supabase 設定
-├── docker/                  # Docker 関連（Supabase オーケストレータ等）
+├── .devcontainer/           # VS Code / Cursor Dev Container 設定
 ├── scripts/                 # 起動・停止スクリプト
-├── docker-compose.yml       # 開発用フルスタック（Day 1–7 共通）
+├── docker-compose.yml       # 開発用フルスタック
 ├── docker-compose.prod.yml  # 本番ビルド用
 └── .github/workflows/       # GitHub Actions CI
 ```
 
 ---
 
-## Docker で全部起動（推奨）
+## Docker
 
-**Day 1 だけでなく、プロジェクト全体（Day 1–7）で使う開発環境です。**
+| サービス | URL |
+|----------|-----|
+| Frontend | http://localhost:5173 |
+| Supabase API | http://localhost:54321 |
+| Supabase Studio | http://localhost:54323 |
+| PostgreSQL | localhost:54322 |
 
-1 コマンドで以下がすべて起動します:
-
-| サービス | URL | 用途 |
-|----------|-----|------|
-| **Frontend** | http://localhost:5173 | React アプリ（Day 2–7 グラフ・認証・グループ） |
-| **Supabase API** | http://localhost:54321 | Auth + REST API（Day 1–7 バックエンド） |
-| **Supabase Studio** | http://localhost:54323 | DB 管理 UI |
-| **PostgreSQL** | localhost:54322 | 直接 DB 接続 |
-
-### 前提条件
-
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/)（インストール済み・起動中）
-- Git
-
-### 起動手順
+### 起動
 
 ```powershell
-# 1. 環境変数ファイルを作成
-cp .env.example .env
-cp frontend/.env.example frontend/.env
-
-# 2. フルスタック起動（Supabase + Frontend + マイグレーション）
-docker compose up --build
-
-# または PowerShell スクリプト
-.\scripts\up.ps1 --build
+.\scripts\up.ps1
 ```
 
-初回起動は Supabase イメージのダウンロードで **5〜10 分** かかることがあります。
+### Dev Container（VS Code / Cursor）
+
+[Dev Containers](https://code.visualstudio.com/docs/devcontainers/containers) 拡張機能を入れると、**コンテナ内で IDE が開き**、毎回 `docker exec` しなくても開発できます。
+
+1. 拡張機能 **Dev Containers** をインストール
+2. コマンドパレット → `Dev Containers: Reopen in Container`
+3. 初回ビルド後、ターミナルで `npm run dev --prefix frontend`
+
+ポート 5173 / 54321 / 54323 は自動転送されます。
 
 ### 停止
 
 ```powershell
 docker compose down
-.\scripts\down.ps1
 ```
 
-### その他 Docker コマンド
+### コマンド
 
 | コマンド | 説明 |
 |----------|------|
-| `npm run docker:up` | フルスタック起動 |
-| `npm run docker:up:build` | イメージ再ビルドして起動 |
+| `npm run docker:up` | 起動 |
+| `npm run docker:up:build` | 再ビルドして起動 |
 | `npm run docker:down` | 停止 |
-| `npm run docker:lint` | Docker 内で ESLint |
-| `npm run docker:build:prod` | 本番用 nginx イメージビルド |
+| `npm run docker:lint` | ESLint |
+| `npm run docker:build:prod` | 本番ビルド |
 
 ---
 
@@ -104,7 +94,7 @@ cd Research-Compass
 
 `main` / `develop` への push / PR で自動 lint + build（`.github/workflows/ci.yml`）。
 
-### Vercel デプロイ（Day 7）
+### Vercel デプロイ
 
 1. https://vercel.com → GitHub 連携 → `Research-Compass` を Import
 2. Root Directory: `frontend`
@@ -114,19 +104,15 @@ cd Research-Compass
 
 ---
 
-## 1 週間の開発と Docker
+## 開発の流れ
 
-| Day | 内容 | Docker の役割 |
-|-----|------|---------------|
-| Day 1 | 環境構築・認証 | Supabase Auth + DB |
-| Day 2 | ノード CRUD・React Flow | 同上 + Frontend |
-| Day 3 | エッジ・メモ | 同上 |
-| Day 4 | 理解度・関連トグル | 同上 |
-| Day 5 | グループ機能 | 同上 |
-| Day 6 | メンバー閲覧・RLS・シード | 同上 + Studio で DB 確認 |
-| Day 7 | UI polish・デプロイ | `docker-compose.prod.yml` で本番ビルド確認 |
-
-**同じ `docker compose up` を Day 1–7 ずっと使います。**
+1. 環境構築・認証（Supabase Auth）
+2. ノード CRUD・React Flow によるグラフ表示
+3. エッジ CRUD・ノード詳細・メモ
+4. 理解度・関連/非関連トグル
+5. グループ作成・招待・参加
+6. メンバー論文図の閲覧（RLS）・デモ用シードデータ
+7. UI 調整・Vercel / Supabase Cloud へのデプロイ
 
 ---
 
