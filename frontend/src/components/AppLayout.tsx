@@ -1,8 +1,10 @@
 import { Link, Outlet, useNavigate } from 'react-router-dom'
+import { useTutorialContext } from '../hooks/useTutorialContext'
 import { useAuth } from '../hooks/useAuth'
 
 export function AppLayout() {
   const { user, signOut } = useAuth()
+  const { openTutorial, appEnabled } = useTutorialContext()
   const navigate = useNavigate()
 
   const displayName =
@@ -22,15 +24,29 @@ export function AppLayout() {
           </Link>
           {user && (
             <nav className="flex flex-wrap items-center gap-4 text-sm text-slate-600">
-              <Link to="/graph" className="hover:text-slate-900">
-                論文グラフ
-              </Link>
-              <Link to="/dashboard" className="hover:text-slate-900">
-                理解度
-              </Link>
-              <Link to="/groups" className="hover:text-slate-900">
-                グループ
-              </Link>
+              {appEnabled && (
+                <>
+                  <Link to="/graph" className="hover:text-slate-900">
+                    論文グラフ
+                  </Link>
+                  <Link to="/dashboard" className="hover:text-slate-900">
+                    理解度
+                  </Link>
+                  <Link to="/groups" className="hover:text-slate-900">
+                    グループ
+                  </Link>
+                  <Link to="/feed" className="hover:text-slate-900">
+                    フィード
+                  </Link>
+                </>
+              )}
+              <button
+                type="button"
+                onClick={openTutorial}
+                className="text-indigo-600 hover:text-indigo-700"
+              >
+                チュートリアル
+              </button>
               <span className="text-slate-400">|</span>
               <span>{displayName}</span>
               <button

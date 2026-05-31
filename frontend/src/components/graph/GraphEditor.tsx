@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type MouseEvent } from 'react'
+import { useCallback, useEffect, useMemo, useState, type FormEvent, type MouseEvent } from 'react'
 import {
   Background,
   Controls,
@@ -21,11 +21,15 @@ import {
   fetchNodes,
   updateNode,
 } from '../../lib/api/nodes'
-import { toFlowEdges, toFlowNodes, type PaperFlowNode } from '../../lib/graph-utils'
+import { edgeExists, toFlowEdges, toFlowNodes, type PaperFlowNode } from '../../lib/graph-utils'
+import { MidpointEdge } from './MidpointEdge'
 import { PaperNodeComponent } from './PaperNode'
 import { NodeDetailPanel } from './NodeDetailPanel'
 
 const nodeTypes = { paper: PaperNodeComponent }
+const edgeTypes = { midpoint: MidpointEdge }
+
+type ConnectMode = 'select' | 'drag'
 
 type GraphEditorProps = {
   userId: string
@@ -44,6 +48,9 @@ export function GraphEditor({
   const [dbEdges, setDbEdges] = useState<PaperEdge[]>([])
   const [relevantOnly, setRelevantOnly] = useState(false)
   const [selectedNode, setSelectedNode] = useState<PaperNode | null>(null)
+  const [connectMode, setConnectMode] = useState<ConnectMode>('select')
+  const [linkSourceId, setLinkSourceId] = useState<string | null>(null)
+  const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -70,16 +77,20 @@ export function GraphEditor({
   }, [ownerId, loadGraph])
 
   const flowNodes = useMemo(
-    () => toFlowNodes(dbNodes, relevantOnly),
-    [dbNodes, relevantOnly],
+    () =>
+      toFlowNodes(dbNodes, relevantOnly, {
+        linkSourceId,
+        showHandles: connectMode === 'drag',
+      }),
+    [dbNodes, relevantOnly, linkSourceId, connectMode],
   )
   const visibleIds = useMemo(
     () => new Set(flowNodes.map((n) => n.id)),
     [flowNodes],
   )
   const flowEdges = useMemo(
-    () => toFlowEdges(dbEdges, visibleIds),
-    [dbEdges, visibleIds],
+    () => toFlowEdges(dbEdges, visibleIds, selectedEdgeId),
+    [dbEdges, visibleIds, selectedEdgeId],
   )
 
   useEffect(() => {
@@ -90,17 +101,32 @@ export function GraphEditor({
   const activeNode =
     selectedNode && visibleIds.has(selectedNode.id) ? selectedNode : null
 
-  const onConnect = useCallback(
-    async (connection: Connection) => {
-      if (readOnly || !connection.source || !connection.target) return
+  const tryCreateEdge = useCallback(
+    async (sourceId: string, targetId: string) => {
+      if (sourceId === targetId) return
+      if (edgeExists(dbEdges, sourceId, targetId)) {
+        setError('この2つのノードはすでに結ばれています')
+        return
+      }
       try {
-        const edge = await createEdge(userId, connection.source, connection.target)
+        const edge = await createEdge(userId, sourceId, targetId)
         setDbEdges((prev) => [...prev, edge])
+        setError(null)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'エッジ作成に失敗しました')
       }
     },
-    [readOnly, userId],
+    [dbEdges, userId],
+  )
+
+  const onConnect = useCallback(
+    async (connection: Connection) => {
+      if (readOnly || connectMode !== 'drag' || !connection.source || !connection.target) {
+        return
+      }
+      await tryCreateEdge(connection.source, connection.target)
+    },
+    [readOnly, connectMode, tryCreateEdge],
   )
 
   const onNodeDragStop: OnNodeDrag = useCallback(
@@ -122,26 +148,67 @@ export function GraphEditor({
   const onNodeClick = useCallback(
     (_: MouseEvent, node: Node) => {
       const paper = (node as PaperFlowNode).data.node
+
+      if (!readOnly && connectMode === 'select') {
+        if (linkSourceId) {
+          if (linkSourceId === node.id) {
+            setLinkSourceId(null)
+          } else {
+            void tryCreateEdge(linkSourceId, node.id)
+            setLinkSourceId(null)
+          }
+        } else {
+          setLinkSourceId(node.id)
+        }
+      }
+
       setSelectedNode(paper)
+      setSelectedEdgeId(null)
     },
-    [],
+    [readOnly, connectMode, linkSourceId, tryCreateEdge],
   )
 
-  const onPaneClick = useCallback(() => setSelectedNode(null), [])
+  const onPaneClick = useCallback(() => {
+    setSelectedNode(null)
+    setLinkSourceId(null)
+    setSelectedEdgeId(null)
+  }, [])
+
+  const deleteSelectedEdge = useCallback(async () => {
+    if (!selectedEdgeId || readOnly) return
+    try {
+      await deleteEdge(selectedEdgeId)
+      setDbEdges((prev) => prev.filter((e) => e.id !== selectedEdgeId))
+      setSelectedEdgeId(null)
+      setError(null)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'エッジ削除に失敗しました')
+    }
+  }, [readOnly, selectedEdgeId])
 
   const handleEdgeClick = useCallback(
-    async (_: MouseEvent, edge: Edge) => {
+    (_: MouseEvent, edge: Edge) => {
       if (readOnly) return
-      if (!confirm('この関係を削除しますか？')) return
-      try {
-        await deleteEdge(edge.id)
-        setDbEdges((prev) => prev.filter((e) => e.id !== edge.id))
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'エッジ削除に失敗しました')
-      }
+      setSelectedEdgeId(edge.id)
+      setSelectedNode(null)
+      setLinkSourceId(null)
     },
     [readOnly],
   )
+
+  useEffect(() => {
+    if (readOnly || !selectedEdgeId) return
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        const target = e.target as HTMLElement
+        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return
+        e.preventDefault()
+        void deleteSelectedEdge()
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [readOnly, selectedEdgeId, deleteSelectedEdge])
 
   const handleNodeUpdated = useCallback((updated: PaperNode) => {
     setDbNodes((prev) => prev.map((n) => (n.id === updated.id ? updated : n)))
@@ -154,18 +221,73 @@ export function GraphEditor({
       prev.filter((e) => e.source_node_id !== id && e.target_node_id !== id),
     )
     setSelectedNode(null)
+    setLinkSourceId(null)
   }, [])
 
   const handleNodeCreated = useCallback((node: PaperNode) => {
     setDbNodes((prev) => [...prev, node])
-    setSelectedNode(node)
+  }, [])
+
+  const handleConnectModeChange = useCallback((mode: ConnectMode) => {
+    setConnectMode(mode)
+    setLinkSourceId(null)
   }, [])
 
   const toolbar = useMemo(
     () => (
       <div className="flex flex-wrap items-center gap-3 border-b border-slate-200 bg-white px-4 py-3">
         {!readOnly && (
-          <AddNodeButton userId={userId} onCreated={handleNodeCreated} />
+          <>
+            <AddNodeButton userId={userId} onCreated={handleNodeCreated} />
+            <div className="flex rounded-lg border border-slate-200 p-0.5 text-sm">
+              <button
+                type="button"
+                onClick={() => handleConnectModeChange('select')}
+                className={`rounded-md px-3 py-1.5 ${
+                  connectMode === 'select'
+                    ? 'bg-indigo-600 text-white'
+                    : 'text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                2点選択で結線
+              </button>
+              <button
+                type="button"
+                onClick={() => handleConnectModeChange('drag')}
+                className={`rounded-md px-3 py-1.5 ${
+                  connectMode === 'drag'
+                    ? 'bg-indigo-600 text-white'
+                    : 'text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                ドラッグで結線
+              </button>
+            </div>
+            {connectMode === 'select' && linkSourceId && (
+              <span className="text-xs text-amber-700">
+                接続先のノードをクリックしてください
+              </span>
+            )}
+            {connectMode === 'drag' && (
+              <span className="text-xs text-slate-500">
+                四角の辺の中点からドラッグして接続
+              </span>
+            )}
+            {!readOnly && (
+              <span className="text-xs text-slate-500">
+                線をクリックで選択 → 削除（Delete キー可）
+              </span>
+            )}
+            {selectedEdgeId && !readOnly && (
+              <button
+                type="button"
+                onClick={() => void deleteSelectedEdge()}
+                className="rounded-lg border border-red-300 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100"
+              >
+                選択中の線を削除
+              </button>
+            )}
+          </>
         )}
         <label className="flex items-center gap-2 text-sm text-slate-600">
           <input
@@ -182,7 +304,17 @@ export function GraphEditor({
         )}
       </div>
     ),
-    [readOnly, relevantOnly, userId, handleNodeCreated],
+    [
+      readOnly,
+      relevantOnly,
+      userId,
+      handleNodeCreated,
+      connectMode,
+      linkSourceId,
+      handleConnectModeChange,
+      selectedEdgeId,
+      deleteSelectedEdge,
+    ],
   )
 
   if (loading) {
@@ -207,8 +339,10 @@ export function GraphEditor({
           onPaneClick={onPaneClick}
           onEdgeClick={handleEdgeClick}
           nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
+          defaultEdgeOptions={{ type: 'midpoint' }}
           nodesDraggable={!readOnly}
-          nodesConnectable={!readOnly}
+          nodesConnectable={!readOnly && connectMode === 'drag'}
           elementsSelectable
           fitView
         >
@@ -243,7 +377,8 @@ function AddNodeButton({
   const [open, setOpen] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
-  async function handleAdd() {
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault()
     if (!title.trim()) return
     setSubmitting(true)
     try {
@@ -273,7 +408,7 @@ function AddNodeButton({
   }
 
   return (
-    <div className="flex items-center gap-2">
+    <form onSubmit={(e) => void handleSubmit(e)} className="flex items-center gap-2">
       <input
         value={title}
         onChange={(e) => setTitle(e.target.value)}
@@ -282,9 +417,8 @@ function AddNodeButton({
         autoFocus
       />
       <button
-        type="button"
-        disabled={submitting}
-        onClick={() => void handleAdd()}
+        type="submit"
+        disabled={submitting || !title.trim()}
         className="rounded-lg bg-indigo-600 px-3 py-2 text-sm text-white hover:bg-indigo-700 disabled:opacity-60"
       >
         追加
@@ -296,6 +430,6 @@ function AddNodeButton({
       >
         キャンセル
       </button>
-    </div>
+    </form>
   )
 }

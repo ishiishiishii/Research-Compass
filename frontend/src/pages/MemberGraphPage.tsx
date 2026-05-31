@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { useAuth } from '../hooks/useAuth'
 import { GraphEditor } from '../components/graph/GraphEditor'
+import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 
 export function MemberGraphPage() {
@@ -26,22 +26,27 @@ export function MemberGraphPage() {
 
   if (!user || !groupId || !memberId) return null
 
+  const isSelf = memberId === user.id
+
   return (
-    <div>
+    <div className="space-y-4">
       <Link
         to={`/groups/${groupId}`}
-        className="text-sm text-indigo-600 hover:underline"
+        className="inline-flex text-sm font-medium text-indigo-600 hover:underline"
       >
-        ← グループに戻る
+        ← メンバー一覧に戻る
       </Link>
-      <h1 className="mb-4 mt-4 text-2xl font-semibold text-slate-900">
-        {memberName} の論文グラフ
-      </h1>
-      <GraphEditor
-        userId={user.id}
-        targetUserId={memberId}
-        readOnly
-      />
+
+      <div className="rounded-2xl border border-slate-200 bg-white px-6 py-4 shadow-sm">
+        <h1 className="text-2xl font-semibold text-slate-900">
+          {memberName} の論文マップ
+        </h1>
+        <p className="mt-1 text-sm text-slate-500">
+          {isSelf ? '自分のグラフです' : '閲覧のみ — 編集は本人のみ可能です'}
+        </p>
+      </div>
+
+      <GraphEditor userId={user.id} targetUserId={memberId} readOnly />
     </div>
   )
 }

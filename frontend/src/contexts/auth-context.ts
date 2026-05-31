@@ -10,7 +10,7 @@ export type AuthContextValue = {
     email: string,
     password: string,
     displayName: string,
-  ) => Promise<{ error: string | null }>
+  ) => Promise<{ error: string | null; needsEmailConfirmation?: boolean }>
   signOut: () => Promise<void>
 }
 

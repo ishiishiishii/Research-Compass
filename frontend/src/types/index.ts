@@ -82,3 +82,20 @@ export type PaperNodeInput = {
   position_x?: number
   position_y?: number
 }
+
+export type GraphSnapshot = {
+  nodes: PaperNode[]
+  edges: PaperEdge[]
+}
+
+export type Post = {
+  id: string
+  user_id: string
+  group_id: string
+  body: string
+  created_at: string
+  profiles?: Pick<Profile, 'id' | 'display_name'>
+  groups?: Pick<Group, 'id' | 'name'>
+  post_snapshots?: GraphSnapshot
+  post_likes?: { user_id: string }[]
+}

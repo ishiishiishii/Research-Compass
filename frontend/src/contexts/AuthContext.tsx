@@ -34,12 +34,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signUp = useCallback(
     async (email: string, password: string, displayName: string) => {
       if (!supabase) return { error: 'Supabase が未設定です' }
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: { data: { display_name: displayName } },
       })
-      return { error: error?.message ?? null }
+      if (error) return { error: error.message }
+      if (!data.session) {
+        return { error: null, needsEmailConfirmation: true }
+      }
+      return { error: null }
     },
     [],
   )
