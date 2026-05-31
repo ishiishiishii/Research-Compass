@@ -17,21 +17,36 @@ export function DashboardPage() {
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-3">
         <Link
           to="/graph"
           className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm transition hover:border-indigo-300 hover:shadow-md"
         >
           <h2 className="font-semibold text-slate-900">マイ論文グラフ</h2>
           <p className="mt-2 text-sm text-slate-600">
-            ノードを追加し、論文・手法の関係を地図化する
+            ノードを追加し、論文・手法の関係を地図化
           </p>
         </Link>
 
-        <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 text-slate-500">
-          <h2 className="font-semibold text-slate-700">グループ</h2>
-          <p className="mt-2 text-sm">近日実装予定</p>
-        </div>
+        <Link
+          to="/dashboard"
+          className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm transition hover:border-indigo-300 hover:shadow-md"
+        >
+          <h2 className="font-semibold text-slate-900">理解度一覧</h2>
+          <p className="mt-2 text-sm text-slate-600">
+            登録ノードの理解度を表形式で確認
+          </p>
+        </Link>
+
+        <Link
+          to="/groups"
+          className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm transition hover:border-indigo-300 hover:shadow-md"
+        >
+          <h2 className="font-semibold text-slate-900">グループ</h2>
+          <p className="mt-2 text-sm text-slate-600">
+            ゼミメンバーの論文図を閲覧
+          </p>
+        </Link>
       </div>
     </section>
   )
