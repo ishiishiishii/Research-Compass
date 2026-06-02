@@ -6,6 +6,15 @@ import type { Group } from '../types'
 
 type GroupWithCount = Group & { member_count: number }
 
+function errorMessage(err: unknown, fallback: string): string {
+  if (err instanceof Error) return err.message
+  if (typeof err === 'string') return err
+  if (err && typeof err === 'object' && 'message' in err && typeof (err as { message?: unknown }).message === 'string') {
+    return (err as { message: string }).message
+  }
+  return fallback
+}
+
 export function GroupsPage() {
   const { user } = useAuth()
   const [groups, setGroups] = useState<GroupWithCount[]>([])
@@ -52,7 +61,7 @@ export function GroupsPage() {
       setShowCreate(false)
       await load()
     } catch (err) {
-      setError(err instanceof Error ? err.message : '作成に失敗しました')
+      setError(errorMessage(err, 'グループの作成に失敗しました'))
     } finally {
       setSubmitting(false)
     }
@@ -68,7 +77,7 @@ export function GroupsPage() {
       setInviteCode('')
       await load()
     } catch (err) {
-      setError(err instanceof Error ? err.message : '参加に失敗しました')
+      setError(errorMessage(err, 'グループへの参加に失敗しました'))
     } finally {
       setSubmitting(false)
     }

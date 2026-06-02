@@ -7,7 +7,7 @@ const POST_SELECT = `
   group_id,
   body,
   created_at,
-  profiles(id, display_name),
+  profiles!posts_user_id_fkey(id, display_name),
   groups(id, name),
   post_snapshots(nodes, edges),
   post_likes(user_id)
