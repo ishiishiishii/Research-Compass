@@ -14,6 +14,20 @@ import {
 } from '../lib/api/posts'
 import type { Group, Post } from '../types'
 
+function errorMessage(err: unknown, fallback: string): string {
+  if (err instanceof Error) return err.message
+  if (typeof err === 'string') return err
+  if (!err || typeof err !== 'object') return fallback
+
+  const maybe = err as Record<string, unknown>
+  const parts: string[] = []
+  if (typeof maybe.message === 'string') parts.push(maybe.message)
+  if (typeof maybe.details === 'string') parts.push(maybe.details)
+  if (typeof maybe.hint === 'string') parts.push(`hint: ${maybe.hint}`)
+  if (typeof maybe.code === 'string') parts.push(`code: ${maybe.code}`)
+  return parts.filter(Boolean).join(' / ') || fallback
+}
+
 export function FeedPage() {
   const { user } = useAuth()
   const [posts, setPosts] = useState<Post[]>([])
@@ -32,7 +46,7 @@ export function FeedPage() {
     try {
       setPosts(await fetchPosts(query))
     } catch (err) {
-      setError(err instanceof Error ? err.message : '読み込みに失敗しました')
+      setError(errorMessage(err, '読み込みに失敗しました'))
     } finally {
       setLoading(false)
     }
@@ -64,7 +78,7 @@ export function FeedPage() {
       setPosts((prev) => [post, ...prev])
       setBody('')
     } catch (err) {
-      setError(err instanceof Error ? err.message : '投稿に失敗しました')
+      setError(errorMessage(err, '投稿に失敗しました'))
     } finally {
       setSubmitting(false)
     }
@@ -87,7 +101,7 @@ export function FeedPage() {
         }),
       )
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'いいねに失敗しました')
+      setError(errorMessage(err, 'いいねに失敗しました'))
     }
   }
 
@@ -97,7 +111,7 @@ export function FeedPage() {
       await deletePost(postId)
       setPosts((prev) => prev.filter((p) => p.id !== postId))
     } catch (err) {
-      setError(err instanceof Error ? err.message : '削除に失敗しました')
+      setError(errorMessage(err, '削除に失敗しました'))
     }
   }
 
