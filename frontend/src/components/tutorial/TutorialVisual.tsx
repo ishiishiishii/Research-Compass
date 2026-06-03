@@ -2,7 +2,7 @@ type VisualProps = {
   stepId: string
 }
 
-const DEMO_NODE_W = 96
+const DEMO_NODE_W = 108
 const DEMO_NODE_H = 40
 
 export function TutorialVisual({ stepId }: VisualProps) {
@@ -22,9 +22,9 @@ function WelcomeVisual() {
   return (
     <div className="tutorial-float flex flex-col items-center gap-3">
       <div className="flex gap-4">
-        <DemoNode label="Q-learning" delay={0} />
-        <DemoNode label="DQN" delay={0.3} />
-        <DemoNode label="PPO" delay={0.6} />
+        <DemoNode label="Word2Vec" delay={0} />
+        <DemoNode label="Transformer" delay={0.3} />
+        <DemoNode label="GPT-2" delay={0.6} />
       </div>
       <p className="text-xs text-slate-500">あなただけの研究地図</p>
     </div>
@@ -35,10 +35,10 @@ function AddNodeVisual() {
   return (
     <div className="relative w-full max-w-xs">
       <div className="tutorial-fade-in rounded-lg border border-dashed border-indigo-400 bg-white px-4 py-2 text-sm text-indigo-600">
-        + DQN を追加
+        + Transformer を追加
       </div>
       <div className="tutorial-pop-in absolute left-1/2 top-16 -translate-x-1/2">
-        <DemoNode label="DQN" />
+        <DemoNode label="Transformer" />
       </div>
     </div>
   )
@@ -51,10 +51,10 @@ function ConnectVisual() {
   return (
     <div className="relative" style={{ width: totalWidth, height: DEMO_NODE_H }}>
       <div className="absolute left-0 top-0">
-        <DemoNode label="Q-learning" />
+        <DemoNode label="Word2Vec" />
       </div>
       <div className="absolute top-0" style={{ left: DEMO_NODE_W + gap }}>
-        <DemoNode label="DQN" delay={0.5} />
+        <DemoNode label="Transformer" delay={0.5} />
       </div>
       <svg
         className="pointer-events-none absolute left-0 top-0 overflow-visible"
@@ -92,7 +92,7 @@ function ConnectVisual() {
 function DetailVisual() {
   return (
     <div className="w-full max-w-sm rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
-      <div className="text-sm font-semibold">DQN</div>
+      <div className="text-sm font-semibold">Transformer</div>
       <div className="mt-2 flex gap-1">
         {['◎', '○', '△', '×'].map((s, i) => (
           <span
@@ -114,8 +114,8 @@ function DetailVisual() {
 function GroupsVisual() {
   return (
     <div className="flex gap-3">
-      <MemberCard name="あなた" graph="Q-learning系" />
-      <MemberCard name="田中" graph="Policy Gradient系" delay={0.4} />
+      <MemberCard name="あなた" graph="Transformer系" />
+      <MemberCard name="田中" graph="GPT / RAG系" delay={0.4} />
     </div>
   )
 }
@@ -131,7 +131,7 @@ function DoneVisual() {
 function DemoNode({ label, delay = 0 }: { label: string; delay?: number }) {
   return (
     <div
-      className="tutorial-pop-in flex items-center justify-center rounded-lg border-2 border-indigo-400 bg-white text-sm font-medium shadow-sm"
+      className="tutorial-pop-in flex items-center justify-center rounded-lg border-2 border-indigo-400 bg-white px-1 text-center text-xs font-medium shadow-sm"
       style={{
         animationDelay: `${delay}s`,
         width: DEMO_NODE_W,
