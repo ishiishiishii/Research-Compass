@@ -75,3 +75,29 @@ export async function fetchGroupMembers(groupId: string): Promise<GroupMember[]>
   if (error) throw error
   return (data ?? []) as GroupMember[]
 }
+
+function mapRpcError(message: string, map: Record<string, string>): string | null {
+  for (const [key, text] of Object.entries(map)) {
+    if (message.includes(key)) return text
+  }
+  return null
+}
+
+export async function leaveGroup(groupId: string): Promise<void> {
+  if (!supabase) throw new Error('Supabase が未設定です')
+  const { error } = await supabase.rpc('leave_group', { p_group_id: groupId })
+  if (error) {
+    const mapped = mapRpcError(error.message ?? '', {
+      GROUP_NOT_FOUND: 'グループが見つかりません',
+      OWNER_CANNOT_LEAVE: 'オーナーは「グループを削除」してください。退出だけでは離れられません',
+      NOT_A_MEMBER: 'このグループのメンバーではありません',
+    })
+    throw new Error(mapped ?? error.message)
+  }
+}
+
+export async function deleteGroup(groupId: string): Promise<void> {
+  if (!supabase) throw new Error('Supabase が未設定です')
+  const { error } = await supabase.from('groups').delete().eq('id', groupId)
+  if (error) throw error
+}

@@ -1,15 +1,27 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
-import { fetchGroup, fetchGroupMembers } from '../lib/api/groups'
+import { deleteGroup, fetchGroup, fetchGroupMembers, leaveGroup } from '../lib/api/groups'
 import type { Group, GroupMember } from '../types'
+
+function errorMessage(err: unknown, fallback: string): string {
+  if (err instanceof Error) return err.message
+  if (typeof err === 'string') return err
+  if (err && typeof err === 'object' && 'message' in err && typeof (err as { message?: unknown }).message === 'string') {
+    return (err as { message: string }).message
+  }
+  return fallback
+}
 
 export function GroupDetailPage() {
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
   const { user } = useAuth()
   const [group, setGroup] = useState<Group | null>(null)
   const [members, setMembers] = useState<GroupMember[]>([])
   const [loading, setLoading] = useState(true)
+  const [actionError, setActionError] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
     if (!id) return
@@ -29,6 +41,50 @@ export function GroupDetailPage() {
 
   if (!group) {
     return <p className="text-red-600">グループが見つかりません</p>
+  }
+
+  const isOwner = group.created_by === user.id
+
+  async function handleLeave() {
+    if (!id) return
+    if (
+      !confirm(
+        `「${group!.name}」から退出しますか？\n再度参加するには招待コードが必要です。`,
+      )
+    ) {
+      return
+    }
+    setSubmitting(true)
+    setActionError(null)
+    try {
+      await leaveGroup(id)
+      navigate('/groups', { replace: true })
+    } catch (err) {
+      setActionError(errorMessage(err, '退出に失敗しました'))
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  async function handleDelete() {
+    if (!id) return
+    if (
+      !confirm(
+        `「${group!.name}」を削除しますか？\nメンバー全員がグループから外れ、フィードの投稿も削除されます。この操作は取り消せません。`,
+      )
+    ) {
+      return
+    }
+    setSubmitting(true)
+    setActionError(null)
+    try {
+      await deleteGroup(id)
+      navigate('/groups', { replace: true })
+    } catch (err) {
+      setActionError(errorMessage(err, 'グループの削除に失敗しました'))
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -52,7 +108,36 @@ export function GroupDetailPage() {
                 {group.invite_code}
               </code>
             </span>
+            {isOwner && (
+              <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-indigo-700">オーナー</span>
+            )}
           </div>
+          <div className="mt-6 flex flex-wrap gap-3 border-t border-slate-100 pt-4">
+            {isOwner ? (
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={() => void handleDelete()}
+                className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-100 disabled:opacity-60"
+              >
+                グループを削除
+              </button>
+            ) : (
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={() => void handleLeave()}
+                className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+              >
+                グループを退出
+              </button>
+            )}
+          </div>
+          {actionError && (
+            <p className="mt-3 text-sm text-red-600" role="alert">
+              {actionError}
+            </p>
+          )}
         </div>
       </div>
 
