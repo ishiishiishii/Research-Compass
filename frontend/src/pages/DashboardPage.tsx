@@ -43,16 +43,6 @@ export function DashboardPage() {
           </Link>
 
           <Link
-            to="/feed"
-            className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm transition hover:border-indigo-300 hover:shadow-md"
-          >
-            <h2 className="font-semibold text-slate-900">フィード</h2>
-            <p className="mt-2 text-sm text-slate-600">
-              マップのスナップショットを投稿・閲覧
-            </p>
-          </Link>
-
-          <Link
             to="/dashboard"
             className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm transition hover:border-indigo-300 hover:shadow-md"
           >
@@ -69,6 +59,16 @@ export function DashboardPage() {
             <h2 className="font-semibold text-slate-900">グループ</h2>
             <p className="mt-2 text-sm text-slate-600">
               ゼミメンバーの論文図を閲覧
+            </p>
+          </Link>
+
+          <Link
+            to="/feed"
+            className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm transition hover:border-indigo-300 hover:shadow-md"
+          >
+            <h2 className="font-semibold text-slate-900">フィード</h2>
+            <p className="mt-2 text-sm text-slate-600">
+              マップのスナップショットを投稿・閲覧
             </p>
           </Link>
         </div>
