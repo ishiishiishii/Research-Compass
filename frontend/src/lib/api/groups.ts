@@ -44,25 +44,25 @@ export async function createGroup(
 }
 
 export async function joinGroupByCode(
-  userId: string,
+  _userId: string,
   inviteCode: string,
 ): Promise<Group> {
   if (!supabase) throw new Error('Supabase が未設定です')
-  const { data: group, error } = await supabase
-    .from('groups')
-    .select('*')
-    .eq('invite_code', inviteCode.trim().toUpperCase())
-    .maybeSingle()
-  if (error) throw error
-  if (!group) throw new Error('招待コードが見つかりません')
-  const { error: memberError } = await supabase
-    .from('group_members')
-    .insert({ group_id: group.id, user_id: userId })
-  if (memberError) {
-    if (memberError.code === '23505') throw new Error('すでに参加済みです')
-    throw memberError
+  const { data: group, error } = await supabase.rpc('join_group_by_invite_code', {
+    p_invite_code: inviteCode.trim(),
+  })
+  if (error) {
+    const msg = error.message ?? ''
+    if (msg.includes('INVITE_CODE_NOT_FOUND')) {
+      throw new Error('招待コードが見つかりません')
+    }
+    if (msg.includes('ALREADY_MEMBER')) {
+      throw new Error('すでに参加済みです')
+    }
+    throw error
   }
-  return group
+  if (!group) throw new Error('招待コードが見つかりません')
+  return group as Group
 }
 
 export async function fetchGroupMembers(groupId: string): Promise<GroupMember[]> {
